@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace CombustiPlus
@@ -9,6 +10,9 @@ namespace CombustiPlus
         private const decimal GalonesParaDescuento = 20m;   // regla 3
         private const decimal PorcentajeDescuento = 0.02m;  // 2 %
         private const decimal PorcentajeTarjeta = 0.03m;    // regla 4: 3 %
+
+        // R5: aquí se guardan todos los despachos del día.
+        private List<Despacho> despachos = new List<Despacho>();
 
         public Form1()
         {
@@ -23,6 +27,8 @@ namespace CombustiPlus
             cmbPago.Items.Add("Efectivo");
             cmbPago.Items.Add("Tarjeta");
             cmbPago.SelectedIndex = 0;
+
+            MostrarResumen();
         }
 
         // R3: revisa los datos antes de cotizar o despachar.
@@ -115,20 +121,71 @@ namespace CombustiPlus
             CalcularTotal(cmbCombustible.Text, nudGalones.Value, cmbPago.Text);
         }
 
+        // R5: guarda el despacho en la lista y actualiza la pantalla.
         private void btnDespachar_Click(object sender, EventArgs e)
         {
             if (!DatosValidos())
             {
                 return;
             }
+
+            Despacho despacho = new Despacho();
+            despacho.Numero = despachos.Count + 1;
+            despacho.Placa = txtPlaca.Text.Trim().ToUpper();
+            despacho.Combustible = cmbCombustible.Text;
+            despacho.Galones = nudGalones.Value;
+            despacho.Pago = cmbPago.Text;
+            despacho.Total = CalcularTotal(despacho.Combustible, despacho.Galones, despacho.Pago);
+
+            despachos.Add(despacho);
+            lstDespachos.Items.Add(despacho);   // el ListBox usa el ToString() de Despacho
+
+            MostrarResumen();
+        }
+
+        // R5: recorre la lista con un foreach para sacar el resumen del día.
+        private void MostrarResumen()
+        {
+            decimal totalVendido = 0;
+            decimal totalGalones = 0;
+            Despacho mayor = null;
+
+            foreach (Despacho d in despachos)
+            {
+                totalVendido += d.Total;
+                totalGalones += d.Galones;
+
+                if (mayor == null || d.Total > mayor.Total)
+                {
+                    mayor = d;
+                }
+            }
+
+            if (mayor == null)
+            {
+                lblResumen.Text = "0 despachos · Vendido RD$ 0.00 · Galones 0.0";
+                return;
+            }
+
+            string palabra = despachos.Count == 1 ? "despacho" : "despachos";
+            lblResumen.Text = $"{despachos.Count} {palabra} · Vendido RD$ {totalVendido:N2} · " +
+                              $"Galones {totalGalones:0.0} · " +
+                              $"Mayor: #{mayor.Numero:00} {mayor.Placa} (RD$ {mayor.Total:N2})";
         }
 
         private void btnPorCombustible_Click(object sender, EventArgs e)
         {
         }
 
+        // Al seleccionar un despacho de la lista se ve su detalle paso a paso.
         private void lstDespachos_SelectedIndexChanged(object sender, EventArgs e)
         {
+            Despacho seleccionado = lstDespachos.SelectedItem as Despacho;
+
+            if (seleccionado != null)
+            {
+                CalcularTotal(seleccionado.Combustible, seleccionado.Galones, seleccionado.Pago);
+            }
         }
     }
 }
