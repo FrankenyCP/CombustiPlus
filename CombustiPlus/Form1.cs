@@ -173,8 +173,37 @@ namespace CombustiPlus
                               $"Mayor: #{mayor.Numero:00} {mayor.Placa} (RD$ {mayor.Total:N2})";
         }
 
+        // R6: suma los galones de cada combustible con un Dictionary.
+        // La clave es el nombre del combustible y el valor son los galones acumulados.
         private void btnPorCombustible_Click(object sender, EventArgs e)
         {
+            Dictionary<string, decimal> galonesPorCombustible = new Dictionary<string, decimal>();
+
+            foreach (Despacho d in despachos)
+            {
+                if (galonesPorCombustible.ContainsKey(d.Combustible))
+                {
+                    galonesPorCombustible[d.Combustible] += d.Galones;
+                }
+                else
+                {
+                    galonesPorCombustible[d.Combustible] = d.Galones;
+                }
+            }
+
+            lstDetalle.Items.Clear();
+            lstDetalle.Items.Add("Galones por combustible:");
+
+            if (galonesPorCombustible.Count == 0)
+            {
+                lstDetalle.Items.Add("(todavía no hay despachos)");
+                return;
+            }
+
+            foreach (KeyValuePair<string, decimal> par in galonesPorCombustible)
+            {
+                lstDetalle.Items.Add($"  {par.Key,-8} {par.Value,6:0.0} gal");
+            }
         }
 
         // Al seleccionar un despacho de la lista se ve su detalle paso a paso.
